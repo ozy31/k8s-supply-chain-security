@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 # Static binary on distroless: no shell, no package manager, runs as UID 65532.
 
-FROM golang:1.24-alpine AS build
+FROM golang:1.27-alpine AS build
 WORKDIR /src
 COPY go.mod ./
 COPY *.go ./
