@@ -10,6 +10,7 @@
 #   hack/release.sh <tag>            build app/ and release it
 #   SKIP_SIGN=1 hack/release.sh <t>  push without signing (for negative tests)
 #   SKIP_ATTEST=1 ...                sign but skip both attestations
+#   KEY_NAME=rogue ...               sign with a different lab key pair
 #
 # Prints the in-cluster image reference (kind-registry:5000/app@sha256:...).
 set -euo pipefail
@@ -26,8 +27,9 @@ mkdir -p "$work"
 
 # The lab signs with a local key pair. In CI the same steps run keyless
 # with the workflow's OIDC identity (see .github/workflows/release.yml).
-"$root/hack/lab-keys.sh" >/dev/null
-key="$root/out/keys/cosign.key"
+key_name="${KEY_NAME:-cosign}"
+"$root/hack/lab-keys.sh" "$key_name" >/dev/null
+key="$root/out/keys/$key_name.key"
 export COSIGN_PASSWORD=""
 
 # Signatures and attestations are recorded in the public Sigstore
