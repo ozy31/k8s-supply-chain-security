@@ -11,6 +11,7 @@
 #   SKIP_SIGN=1 hack/release.sh <t>  push without signing (for negative tests)
 #   SKIP_ATTEST=1 ...                sign but skip both attestations
 #   KEY_NAME=rogue ...               sign with a different lab key pair
+#   STALE_SCAN=1 ...                 backdate the scan by 30 days (e2e only)
 #
 # Prints the in-cluster image reference (kind-registry:5000/app@sha256:...).
 set -euo pipefail
@@ -67,6 +68,13 @@ log "scan"
 # match distro packages, and an SPDX document does not carry them.
 trivy image --quiet --format cosign-vuln --output "$work/vuln.json" "$ref"
 trivy convert --quiet --format table --severity HIGH,CRITICAL "$work/vuln.json" >&2 2>/dev/null || true
+
+if [[ -n "${STALE_SCAN:-}" ]]; then
+  old="$(date -u -v-30d +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -d '30 days ago' +%Y-%m-%dT%H:%M:%SZ)"
+  jq --arg t "$old" '.metadata.scanStartedOn = $t | .metadata.scanFinishedOn = $t' \
+    "$work/vuln.json" >"$work/vuln.stale.json"
+  mv "$work/vuln.stale.json" "$work/vuln.json"
+fi
 
 log "sign"
 cosign sign "${cosign_flags[@]}" "$ref" 2>/dev/null
