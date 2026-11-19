@@ -1,0 +1,12 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: supply-chain
+containerdConfigPatches:
+  # Read per-registry config from certs.d so the local registry can be
+  # reached over plain HTTP by its in-network name.
+  - |-
+    [plugins."io.containerd.grpc.v1.cri".registry]
+      config_path = "/etc/containerd/certs.d"
+nodes:
+  - role: control-plane
+  - role: worker

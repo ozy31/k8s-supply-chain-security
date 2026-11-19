@@ -1,0 +1,2 @@
+# versions.env is resolved at runtime from the repo root.
+disable=SC1091
