@@ -1,0 +1,44 @@
+# Images must carry a signed SPDX SBOM attestation. Without an inventory
+# there is no way to answer "are we affected?" when the next CVE lands.
+apiVersion: policies.kyverno.io/v1
+kind: ImageValidatingPolicy
+metadata:
+  name: require-sbom
+  annotations:
+    policies.kyverno.io/title: Require a signed SBOM attestation
+    policies.kyverno.io/severity: medium
+spec:
+  validationActions: [Deny]
+  failurePolicy: Fail
+  webhookConfiguration:
+    timeoutSeconds: 20
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: [v1]
+        operations: [CREATE, UPDATE]
+        resources: [pods]
+  matchImageReferences:
+    - glob: "kind-registry:5000/*"
+  attestors:
+    - name: lab
+      cosign:
+        key:
+          data: |
+            __LAB_PUBLIC_KEY__
+        ctlog:
+          # Key-based signing has no Fulcio certificate, so there is no SCT
+          # to check. The Rekor entry is still required and verified.
+          url: https://rekor.sigstore.dev
+          insecureIgnoreSCT: true
+  attestations:
+    - name: sbom
+      intoto:
+        type: https://spdx.dev/Document
+  validations:
+    - expression: >-
+        images.containers.map(image, verifyAttestationSignatures(image, attestations.sbom, [attestors.lab])).all(e, e > 0)
+      message: image has no SBOM attestation signed by the lab key
+    - expression: >-
+        images.containers.map(image, extractPayload(image, attestations.sbom)).all(p, size(p.predicate.packages) > 0)
+      message: SBOM attestation lists no packages

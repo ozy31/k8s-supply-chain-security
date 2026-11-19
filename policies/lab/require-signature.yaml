@@ -33,9 +33,9 @@ spec:
           data: |
             __LAB_PUBLIC_KEY__
         ctlog:
-          # The lab has no Rekor. Production verifies keyless signatures
-          # against the public transparency log (policies/github).
-          insecureIgnoreTlog: true
+          # Key-based signing has no Fulcio certificate, so there is no SCT
+          # to check. The Rekor entry is still required and verified.
+          url: https://rekor.sigstore.dev
           insecureIgnoreSCT: true
   validations:
     - expression: >-

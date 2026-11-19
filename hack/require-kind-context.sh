@@ -7,7 +7,9 @@ set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$root/versions.env"
 
-if ! kubectl config get-contexts -o name | grep -qx "$KUBE_CONTEXT"; then
+# Capture first: `grep -q` exits early and pipefail would report SIGPIPE.
+contexts="$(kubectl config get-contexts -o name)"
+if ! grep -qx "$KUBE_CONTEXT" <<<"$contexts"; then
   echo "context $KUBE_CONTEXT not found; run 'make cluster' first" >&2
   exit 1
 fi

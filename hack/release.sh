@@ -30,9 +30,15 @@ mkdir -p "$work"
 key="$root/out/keys/cosign.key"
 export COSIGN_PASSWORD=""
 
-# Cosign 3 writes Sigstore bundles by default. Kyverno 1.20 resolves the
-# classic .sig/.att tags, and the lab has no transparency log, so use those.
-cosign_flags=(--key "$key" --new-bundle-format=false --use-signing-config=false --tlog-upload=false -y)
+# Signatures and attestations are recorded in the public Sigstore
+# transparency log (Rekor). Kyverno requires a log entry before it trusts a
+# key-signed attestation. The entry holds the image digest, the signature and
+# the lab public key; nothing else about the image or the repo.
+#
+# Classic .sig/.att tags instead of Sigstore bundles: bundles are discovered
+# through the OCI referrers API, which the lab registry (distribution v3)
+# does not serve.
+cosign_flags=(--key "$key" --new-bundle-format=false --use-signing-config=false -y)
 
 log() { echo "==> $*" >&2; }
 
