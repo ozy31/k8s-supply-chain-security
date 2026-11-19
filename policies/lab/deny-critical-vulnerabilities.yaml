@@ -1,0 +1,58 @@
+# Images must carry a signed vulnerability scan attestation that is recent
+# and reports no CRITICAL findings. Signing proves the scan ran in our
+# pipeline; the freshness check stops a months-old clean scan from vouching
+# for an image that has since become vulnerable.
+apiVersion: policies.kyverno.io/v1
+kind: ImageValidatingPolicy
+metadata:
+  name: deny-critical-vulnerabilities
+  annotations:
+    policies.kyverno.io/title: Deny images with CRITICAL vulnerabilities
+    policies.kyverno.io/severity: high
+spec:
+  validationActions: [Deny]
+  failurePolicy: Fail
+  webhookConfiguration:
+    timeoutSeconds: 20
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: [v1]
+        operations: [CREATE, UPDATE]
+        resources: [pods]
+  matchImageReferences:
+    - glob: "kind-registry:5000/*"
+  attestors:
+    - name: lab
+      cosign:
+        key:
+          data: |
+            __LAB_PUBLIC_KEY__
+        ctlog:
+          url: https://rekor.sigstore.dev
+          insecureIgnoreSCT: true
+  attestations:
+    - name: vulns
+      intoto:
+        type: https://cosign.sigstore.dev/attestation/vuln/v1
+  variables:
+    - name: scans
+      expression: >-
+        images.containers.map(image, extractPayload(image, attestations.vulns).predicate)
+  validations:
+    - expression: >-
+        images.containers.map(image, verifyAttestationSignatures(image, attestations.vulns, [attestors.lab])).all(e, e > 0)
+      message: image has no vulnerability scan attestation signed by the lab key
+    - expression: >-
+        variables.scans.all(scan, has(scan.scanner.result.Results) && size(scan.scanner.result.Results) > 0)
+      message: the signed scan found nothing to scan; an empty scan proves nothing
+    - expression: >-
+        variables.scans.all(scan,
+          scan.scanner.result.Results.all(r,
+            !has(r.Vulnerabilities) ||
+            r.Vulnerabilities.all(v, v.Severity != 'CRITICAL')))
+      message: the image's signed scan reports CRITICAL vulnerabilities
+    - expression: >-
+        variables.scans.all(scan,
+          timestamp(scan.metadata.scanFinishedOn) > time.now() - duration('168h'))
+      message: the vulnerability scan is older than 7 days; rescan and re-attest the image

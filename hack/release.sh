@@ -61,9 +61,10 @@ log "sbom"
 syft scan "registry:$ref" -o spdx-json="$work/sbom.spdx.json" -q
 
 log "scan"
-# Scan the SBOM rather than the image again: one inventory, two consumers.
-trivy sbom --quiet --format cosign-vuln --output "$work/vuln.json" "$work/sbom.spdx.json"
-trivy sbom --quiet --format table --severity HIGH,CRITICAL "$work/sbom.spdx.json" >&2 || true
+# Scan the image itself, not the SBOM: Trivy needs the OS release files to
+# match distro packages, and an SPDX document does not carry them.
+trivy image --quiet --format cosign-vuln --output "$work/vuln.json" "$ref"
+trivy convert --quiet --format table --severity HIGH,CRITICAL "$work/vuln.json" >&2 2>/dev/null || true
 
 log "sign"
 cosign sign "${cosign_flags[@]}" "$ref" 2>/dev/null
