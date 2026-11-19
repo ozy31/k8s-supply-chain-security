@@ -1,0 +1,6 @@
+# local signing keys are generated per run, never committed
+*.key
+*.pub
+!policies/**/*.pub
+out/
+.DS_Store
