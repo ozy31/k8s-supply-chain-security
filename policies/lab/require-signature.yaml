@@ -1,0 +1,43 @@
+# Every container image from the lab registry must carry a cosign signature
+# made with the lab key. Kyverno resolves tags to digests while verifying
+# and rewrites the pod to the verified digest (mutateDigest), so a tag that
+# is re-pointed after admission cannot change what runs.
+apiVersion: policies.kyverno.io/v1
+kind: ImageValidatingPolicy
+metadata:
+  name: require-signature
+  annotations:
+    policies.kyverno.io/title: Require a cosign signature
+    policies.kyverno.io/severity: high
+spec:
+  validationActions: [Deny]
+  failurePolicy: Fail
+  webhookConfiguration:
+    timeoutSeconds: 20
+  validationConfigurations:
+    required: true
+    mutateDigest: true
+    verifyDigest: true
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: [v1]
+        operations: [CREATE, UPDATE]
+        resources: [pods]
+  matchImageReferences:
+    - glob: "kind-registry:5000/*"
+  attestors:
+    - name: lab
+      cosign:
+        key:
+          data: |
+            __LAB_PUBLIC_KEY__
+        ctlog:
+          # The lab has no Rekor. Production verifies keyless signatures
+          # against the public transparency log (policies/github).
+          insecureIgnoreTlog: true
+          insecureIgnoreSCT: true
+  validations:
+    - expression: >-
+        images.containers.map(image, verifyImageSignatures(image, [attestors.lab])).all(e, e > 0)
+      message: image is not signed by the lab key
