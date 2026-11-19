@@ -1,2 +1,4 @@
 # versions.env is resolved at runtime from the repo root.
 disable=SC1091
+# root, kc and hc come from hack/require-kind-context.sh.
+disable=SC2154

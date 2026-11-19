@@ -1,0 +1,30 @@
+# Kyverno for the kind lab. Production differences are noted inline.
+admissionController:
+  # One replica is enough on kind; run 3 with a PDB in production.
+  replicas: 1
+backgroundController:
+  replicas: 1
+cleanupController:
+  enabled: false
+reportsController:
+  replicas: 1
+
+features:
+  registryClient:
+    # The lab registry speaks plain HTTP. Never set this for a real registry.
+    allowInsecure: true
+    credentialHelpers: []
+
+config:
+  # Keep Kyverno from judging its own and the system namespaces, so a broken
+  # policy cannot stop the cluster from healing itself.
+  resourceFiltersExcludeNamespaces:
+    - kube-system
+    - kyverno
+    - local-path-storage
+  webhooks:
+    - namespaceSelector:
+        matchExpressions:
+          - key: kubernetes.io/metadata.name
+            operator: NotIn
+            values: [kube-system, kyverno, local-path-storage]
