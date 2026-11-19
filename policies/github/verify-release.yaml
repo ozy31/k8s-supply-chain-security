@@ -1,0 +1,81 @@
+# Production counterpart of policies/lab: images from GHCR must be signed
+# keylessly by this repository's release workflow on a version tag, carry
+# the SBOM and scan attestations it produces, and have SLSA build
+# provenance from GitHub. No key material appears anywhere: trust is the
+# workflow identity in the Fulcio certificate plus the Rekor entry.
+apiVersion: policies.kyverno.io/v1
+kind: ImageValidatingPolicy
+metadata:
+  name: verify-github-release
+  annotations:
+    policies.kyverno.io/title: Verify images released by GitHub Actions
+    policies.kyverno.io/severity: high
+spec:
+  validationActions: [Deny]
+  failurePolicy: Fail
+  webhookConfiguration:
+    timeoutSeconds: 30
+  validationConfigurations:
+    required: true
+    mutateDigest: true
+    verifyDigest: true
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: [v1]
+        operations: [CREATE, UPDATE]
+        resources: [pods]
+  matchImageReferences:
+    - glob: "ghcr.io/ozy31/k8s-supply-chain-security/*"
+  attestors:
+    - name: release-workflow
+      cosign:
+        keyless:
+          identities:
+            - issuer: https://token.actions.githubusercontent.com
+              subjectRegExp: '^https://github\.com/ozy31/k8s-supply-chain-security/\.github/workflows/release\.yml@refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$'
+        ctlog:
+          url: https://rekor.sigstore.dev
+  attestations:
+    - name: sbom
+      intoto:
+        type: https://spdx.dev/Document
+    - name: vulns
+      intoto:
+        type: https://cosign.sigstore.dev/attestation/vuln/v1
+    - name: provenance
+      intoto:
+        type: https://slsa.dev/provenance/v1
+  variables:
+    - name: scans
+      expression: >-
+        images.containers.map(image, extractPayload(image, attestations.vulns).predicate)
+    - name: provenance
+      expression: >-
+        images.containers.map(image, extractPayload(image, attestations.provenance).predicate)
+  validations:
+    - expression: >-
+        images.containers.map(image, verifyImageSignatures(image, [attestors['release-workflow']])).all(e, e > 0)
+      message: image is not signed by the release workflow on a version tag
+    - expression: >-
+        images.containers.map(image, verifyAttestationSignatures(image, attestations.sbom, [attestors['release-workflow']])).all(e, e > 0)
+      message: image has no SBOM attestation from the release workflow
+    - expression: >-
+        images.containers.map(image, verifyAttestationSignatures(image, attestations.vulns, [attestors['release-workflow']])).all(e, e > 0)
+      message: image has no vulnerability scan attestation from the release workflow
+    - expression: >-
+        variables.scans.all(scan,
+          has(scan.scanner.result.Results) &&
+          scan.scanner.result.Results.all(r,
+            !has(r.Vulnerabilities) || r.Vulnerabilities.all(v, v.Severity != 'CRITICAL')))
+      message: the signed scan reports CRITICAL vulnerabilities
+    - expression: >-
+        variables.scans.all(scan, timestamp(scan.metadata.scanFinishedOn) > time.now() - duration('168h'))
+      message: the vulnerability scan is older than 7 days; re-run the release scan
+    - expression: >-
+        images.containers.map(image, verifyAttestationSignatures(image, attestations.provenance, [attestors['release-workflow']])).all(e, e > 0)
+      message: image has no SLSA provenance from the release workflow
+    - expression: >-
+        variables.provenance.all(p,
+          p.buildDefinition.externalParameters.workflow.repository == 'https://github.com/ozy31/k8s-supply-chain-security')
+      message: provenance does not point at this repository
