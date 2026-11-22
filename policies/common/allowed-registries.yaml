@@ -1,0 +1,36 @@
+# Image policies only judge images from the registries they match. Without
+# this allowlist, an image from any other registry would skip signature
+# checks entirely. In enforced namespaces only our own registries are allowed.
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: allowed-registries
+  annotations:
+    policies.kyverno.io/title: Allow images only from trusted registries
+    policies.kyverno.io/severity: high
+spec:
+  validationActions: [Deny]
+  failurePolicy: Fail
+  matchConstraints:
+    namespaceSelector:
+      matchLabels:
+        supply-chain.lab/enforce: "true"
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: [v1]
+        operations: [CREATE, UPDATE]
+        resources: [pods]
+  variables:
+    - name: allowed
+      expression: >-
+        ['kind-registry:5000/', 'ghcr.io/ozy31/k8s-supply-chain-security/']
+    - name: images
+      expression: >-
+        (object.spec.containers + object.spec.?initContainers.orValue([]) + object.spec.?ephemeralContainers.orValue([]))
+          .map(c, c.image)
+  validations:
+    - expression: >-
+        variables.images.all(img, variables.allowed.exists(prefix, img.startsWith(prefix)))
+      messageExpression: >-
+        'images must come from ' + variables.allowed.join(', ') + '; got ' +
+        variables.images.filter(img, !variables.allowed.exists(prefix, img.startsWith(prefix))).join(', ')
