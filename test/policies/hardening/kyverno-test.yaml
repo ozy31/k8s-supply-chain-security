@@ -4,7 +4,7 @@ kind: Test
 metadata:
   name: pod-hardening
 policies:
-  - ../../policies/common/pod-hardening.yaml
+  - ../../../policies/common/pod-hardening.yaml
 resources:
   - resources.yaml
 variables: values.yaml
