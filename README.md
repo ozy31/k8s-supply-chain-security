@@ -15,7 +15,8 @@ kubectl apply ─► Kyverno ImageValidatingPolicy ───────┘
                    ├─ signed scan: not empty, < 7 days old, no CRITICAL
                    └─ tag resolved and pinned to the verified digest
                  Kyverno ValidatingPolicy
-                   └─ non-root, read-only rootfs, drop ALL, no privilege, no host namespaces
+                   ├─ images only from the lab registry or this repo's GHCR path
+                   └─ non-root, read-only rootfs, drop ALL, memory limit, no privilege, no host namespaces
 ```
 
 Everything runs locally on kind, and the e2e suite proves each rule with a
@@ -32,6 +33,8 @@ real image, not only a policy unit test.
 | Scan older than 7 days | `STALE_SCAN=1 hack/release.sh` | deny-critical-vulnerabilities |
 | Signed and attested, but CRITICAL CVEs | `test/fixtures/vulnerable` (alpine 3.10.0) | deny-critical-vulnerabilities |
 | Root container in an enforced namespace | `kubectl run` without securityContext | pod-hardening |
+| Image from Docker Hub or a look-alike GHCR path | offline fixture | allowed-registries |
+| Container without a memory limit | offline fixture | pod-hardening |
 
 Admitted pods are rewritten from `app:v1.2.3` to `app:v1.2.3@sha256:…`, so
 moving a tag later cannot change what runs.
@@ -43,7 +46,7 @@ kyverno CLI 1.20, Go.
 
 ```bash
 make up               # kind + local registry + Kyverno 1.20 + policies
-make test-policies    # offline Kyverno CLI tests (no cluster)
+make test-policies    # 13 offline Kyverno CLI cases (no cluster)
 make e2e              # 12 admission cases against the live webhooks
 make down
 ```
@@ -83,8 +86,8 @@ hack/release.sh           build → SBOM → scan → sign → attest, by digest
 hack/cluster-up.sh        kind + registry wired for in-cluster pulls
 policies/lab/             key-based image policies (rendered with the lab key)
 policies/github/          keyless image policy for GHCR releases
-policies/common/          pod hardening ValidatingPolicy
-test/policies/            offline `kyverno test` cases
+policies/common/          registry allowlist and pod hardening ValidatingPolicies
+test/policies/            offline `kyverno test` cases, one directory per policy
 test/e2e/                 live admission tests
 docs/                     threat model, ADRs
 ```

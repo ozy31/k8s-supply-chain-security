@@ -18,6 +18,8 @@ What this setup stops, what it does not, and where the trust sits.
 | A clean scan from months ago vouches for an image that is now vulnerable | Scan must be less than 7 days old | stale-scan case |
 | The scanner silently found no packages (wrong input, broken scan) | Empty scan results are refused | policy rule, see ADR 0003 |
 | A known CRITICAL CVE ships | Refused at admission, and the release workflow fails before signing | critical-vulns case |
+| An image from an unmatched registry skips signature checks | Registry allowlist in enforced namespaces, prefix-matched so look-alike repositories fail | `test/policies/registries` |
+| One pod exhausts node memory | Memory limit required | `test/policies/hardening` |
 | A compromised image tries to escalate | Non-root, read-only rootfs, drop ALL, no privileged, no host namespaces | `test/policies`, `test/e2e/hardening.sh` |
 | Signing key theft | Production is keyless; certificates live ~10 minutes and are bound to the workflow | design |
 | Signature backdating or silent key misuse | Every signature is in the public Rekor log and can be audited | design |
@@ -30,9 +32,10 @@ What this setup stops, what it does not, and where the trust sits.
 - **Vulnerabilities discovered after admission.** Running pods are not
   re-checked. A periodic rescan job or Kyverno background reports would
   cover this.
-- **Images outside the matched registries.** Policies match
-  `kind-registry:5000/*` and the GHCR repository. A registry allowlist
-  policy would close the gap for everything else.
+- **Namespaces without the enforce label.** The allowlist and hardening
+  baseline apply only where `supply-chain.lab/enforce=true` is set. A
+  namespace that is created without it gets image verification for matched
+  registries only.
 - **Kyverno availability.** `failurePolicy: Fail` means pods are refused
   when Kyverno is down. That is the intended trade-off; run three replicas
   in production.
