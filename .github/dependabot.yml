@@ -1,0 +1,16 @@
+# Base images and actions are part of the supply chain too: keep them moving
+# so the CRITICAL-CVE gate does not start failing on stale dependencies.
+version: 2
+updates:
+  - package-ecosystem: docker
+    directory: /app
+    schedule:
+      interval: weekly
+  - package-ecosystem: gomod
+    directory: /app
+    schedule:
+      interval: weekly
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
