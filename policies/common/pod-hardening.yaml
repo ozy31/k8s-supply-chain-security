@@ -45,5 +45,8 @@ spec:
         variables.containers.all(c, c.?securityContext.?capabilities.?drop.orValue([]).exists(d, d == 'ALL'))
       message: containers must drop ALL capabilities
     - expression: >-
+        object.spec.containers.all(c, has(c.resources) && has(c.resources.limits) && 'memory' in c.resources.limits)
+      message: containers must set a memory limit, so one pod cannot starve its node
+    - expression: >-
         !object.spec.?hostNetwork.orValue(false) && !object.spec.?hostPID.orValue(false) && !object.spec.?hostIPC.orValue(false)
       message: host namespaces are not allowed

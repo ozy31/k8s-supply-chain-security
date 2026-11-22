@@ -14,6 +14,9 @@ spec:
         readOnlyRootFilesystem: true
         capabilities:
           drop: [ALL]
+      resources:
+        limits:
+          memory: 64Mi
 ---
 apiVersion: v1
 kind: Pod
@@ -31,6 +34,9 @@ spec:
         readOnlyRootFilesystem: true
         capabilities:
           drop: [ALL]
+      resources:
+        limits:
+          memory: 64Mi
 ---
 apiVersion: v1
 kind: Pod
@@ -46,6 +52,9 @@ spec:
         readOnlyRootFilesystem: true
         capabilities:
           drop: [ALL]
+      resources:
+        limits:
+          memory: 64Mi
 ---
 apiVersion: v1
 kind: Pod
@@ -64,6 +73,9 @@ spec:
         readOnlyRootFilesystem: true
         capabilities:
           drop: [ALL]
+      resources:
+        limits:
+          memory: 64Mi
 ---
 apiVersion: v1
 kind: Pod
@@ -79,6 +91,9 @@ spec:
       securityContext:
         allowPrivilegeEscalation: false
         readOnlyRootFilesystem: true
+      resources:
+        limits:
+          memory: 64Mi
 ---
 apiVersion: v1
 kind: Pod
@@ -97,6 +112,9 @@ spec:
         readOnlyRootFilesystem: true
         capabilities:
           drop: [ALL]
+      resources:
+        limits:
+          memory: 64Mi
 ---
 apiVersion: v1
 kind: Pod
@@ -115,6 +133,29 @@ spec:
         readOnlyRootFilesystem: true
         capabilities:
           drop: [ALL]
+      resources:
+        limits:
+          memory: 64Mi
+  containers:
+    - name: app
+      image: kind-registry:5000/app:v1.0.0
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: [ALL]
+      resources:
+        limits:
+          memory: 64Mi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: no-memory-limit
+  namespace: demo
+spec:
+  securityContext:
+    runAsNonRoot: true
   containers:
     - name: app
       image: kind-registry:5000/app:v1.0.0

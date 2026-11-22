@@ -38,6 +38,9 @@ spec:
         readOnlyRootFilesystem: true
         capabilities:
           drop: [ALL]
+      resources:
+        limits:
+          memory: 64Mi
 YAML
 }
 

@@ -21,5 +21,6 @@ results:
       - keeps-capabilities
       - host-network
       - root-init-container
+      - no-memory-limit
     kind: Pod
     result: fail
