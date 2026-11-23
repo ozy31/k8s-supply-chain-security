@@ -164,3 +164,43 @@ spec:
         readOnlyRootFilesystem: true
         capabilities:
           drop: [ALL]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: untagged-with-port
+  namespace: demo
+spec:
+  securityContext:
+    runAsNonRoot: true
+  containers:
+    - name: app
+      image: kind-registry:5000/app
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: [ALL]
+      resources:
+        limits:
+          memory: 64Mi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pinned-by-digest
+  namespace: demo
+spec:
+  securityContext:
+    runAsNonRoot: true
+  containers:
+    - name: app
+      image: kind-registry:5000/app@sha256:0000000000000000000000000000000000000000000000000000000000000000
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: [ALL]
+      resources:
+        limits:
+          memory: 64Mi

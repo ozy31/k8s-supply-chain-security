@@ -10,12 +10,13 @@ resources:
 variables: values.yaml
 results:
   - policy: pod-hardening
-    resources: [hardened]
+    resources: [hardened, pinned-by-digest]
     kind: Pod
     result: pass
   - policy: pod-hardening
     resources:
       - latest-tag
+      - untagged-with-port
       - runs-as-root
       - privileged
       - keeps-capabilities

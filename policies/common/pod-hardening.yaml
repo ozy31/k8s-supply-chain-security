@@ -25,8 +25,12 @@ spec:
       expression: >-
         object.spec.containers + object.spec.?initContainers.orValue([]) + object.spec.?ephemeralContainers.orValue([])
   validations:
+    # Only the last path segment can carry a tag; a ':' before it is a
+    # registry port, so kind-registry:5000/app has no tag.
     - expression: >-
-        variables.containers.all(c, !c.image.endsWith(':latest') && (c.image.contains('@sha256:') || c.image.contains(':')))
+        variables.containers.all(c,
+          c.image.contains('@sha256:') ||
+          (c.image.substring(c.image.lastIndexOf('/') + 1).contains(':') && !c.image.endsWith(':latest')))
       message: images must use an explicit tag or digest, never latest
     - expression: >-
         variables.containers.all(c,
