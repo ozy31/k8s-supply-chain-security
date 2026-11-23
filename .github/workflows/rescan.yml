@@ -1,0 +1,56 @@
+# Admission only checks an image once. A CVE published next week does not
+# stop a pod that is already running, and the 7-day freshness rule means a
+# release that is never rescanned is refused the next time it reschedules.
+#
+# This job rescans the three newest releases every Monday with a fresh
+# vulnerability database and fails when one of them has a CRITICAL finding,
+# so the fix (a new release) starts before Kyverno starts refusing pods.
+name: rescan
+
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+
+env:
+  IMAGE: ghcr.io/${{ github.repository }}/app
+
+jobs:
+  rescan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Rescan the newest releases
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          source versions.env
+          mapfile -t tags < <(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n 3)
+          if [[ ${#tags[@]} -eq 0 ]]; then
+            echo "No releases yet, nothing to rescan." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          echo "| Release | CRITICAL |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| --- | --- |" >> "$GITHUB_STEP_SUMMARY"
+          status=0
+          for tag in "${tags[@]}"; do
+            report="$(docker run --rm -e TRIVY_USERNAME -e TRIVY_PASSWORD "$TRIVY_IMAGE" \
+              image --quiet --severity CRITICAL --format json "$IMAGE:$tag")"
+            count="$(jq '[.Results[]?.Vulnerabilities[]?] | length' <<<"$report")"
+            echo "| \`$tag\` | $count |" >> "$GITHUB_STEP_SUMMARY"
+            if [[ "$count" -gt 0 ]]; then
+              echo "::error title=CRITICAL vulnerabilities in $tag::$(jq -r '[.Results[]?.Vulnerabilities[]?.VulnerabilityID] | unique | join(", ")' <<<"$report")"
+              status=1
+            fi
+          done
+          exit "$status"
