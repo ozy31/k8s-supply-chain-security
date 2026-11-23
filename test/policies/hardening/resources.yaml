@@ -252,3 +252,88 @@ spec:
       resources:
         limits:
           memory: 64Mi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: host-path
+  namespace: demo
+spec:
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: app
+      image: kind-registry:5000/app:v1.0.0
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: [ALL]
+      resources:
+        limits:
+          memory: 64Mi
+      volumeMounts:
+        - name: node
+          mountPath: /node
+          readOnly: true
+  volumes:
+    - name: node
+      hostPath:
+        path: /
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: host-port
+  namespace: demo
+spec:
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: app
+      image: kind-registry:5000/app:v1.0.0
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: [ALL]
+      ports:
+        - containerPort: 8080
+          hostPort: 8080
+      resources:
+        limits:
+          memory: 64Mi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: container-port-and-emptydir
+  namespace: demo
+spec:
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: app
+      image: kind-registry:5000/app:v1.0.0
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: [ALL]
+      ports:
+        - containerPort: 8080
+      resources:
+        limits:
+          memory: 64Mi
+      volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+  volumes:
+    - name: tmp
+      emptyDir: {}

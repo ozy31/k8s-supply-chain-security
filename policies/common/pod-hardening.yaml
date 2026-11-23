@@ -59,3 +59,9 @@ spec:
     - expression: >-
         !object.spec.?hostNetwork.orValue(false) && !object.spec.?hostPID.orValue(false) && !object.spec.?hostIPC.orValue(false)
       message: host namespaces are not allowed
+    - expression: >-
+        !object.spec.?volumes.orValue([]).exists(v, has(v.hostPath))
+      message: hostPath volumes are not allowed, they expose the node filesystem
+    - expression: >-
+        variables.containers.all(c, c.?ports.orValue([]).all(p, p.?hostPort.orValue(0) == 0))
+      message: hostPort is not allowed, expose the pod through a Service

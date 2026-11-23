@@ -10,7 +10,7 @@ resources:
 variables: values.yaml
 results:
   - policy: pod-hardening
-    resources: [hardened, pinned-by-digest]
+    resources: [hardened, pinned-by-digest, container-port-and-emptydir]
     kind: Pod
     result: pass
   - policy: pod-hardening
@@ -25,5 +25,7 @@ results:
       - no-memory-limit
       - no-seccomp
       - unconfined-container
+      - host-path
+      - host-port
     kind: Pod
     result: fail
