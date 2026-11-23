@@ -23,5 +23,7 @@ results:
       - host-network
       - root-init-container
       - no-memory-limit
+      - no-seccomp
+      - unconfined-container
     kind: Pod
     result: fail

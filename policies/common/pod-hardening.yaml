@@ -52,5 +52,10 @@ spec:
         object.spec.containers.all(c, has(c.resources) && has(c.resources.limits) && 'memory' in c.resources.limits)
       message: containers must set a memory limit, so one pod cannot starve its node
     - expression: >-
+        variables.containers.all(c,
+          c.?securityContext.?seccompProfile.?type.orValue(
+            object.spec.?securityContext.?seccompProfile.?type.orValue('')) in ['RuntimeDefault', 'Localhost'])
+      message: containers must use the RuntimeDefault or a Localhost seccomp profile
+    - expression: >-
         !object.spec.?hostNetwork.orValue(false) && !object.spec.?hostPID.orValue(false) && !object.spec.?hostIPC.orValue(false)
       message: host namespaces are not allowed

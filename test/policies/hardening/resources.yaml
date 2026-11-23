@@ -6,6 +6,8 @@ metadata:
 spec:
   securityContext:
     runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   containers:
     - name: app
       image: kind-registry:5000/app:v1.0.0
@@ -193,11 +195,57 @@ metadata:
 spec:
   securityContext:
     runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   containers:
     - name: app
       image: kind-registry:5000/app@sha256:0000000000000000000000000000000000000000000000000000000000000000
       securityContext:
         allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: [ALL]
+      resources:
+        limits:
+          memory: 64Mi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: no-seccomp
+  namespace: demo
+spec:
+  securityContext:
+    runAsNonRoot: true
+  containers:
+    - name: app
+      image: kind-registry:5000/app:v1.0.0
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: [ALL]
+      resources:
+        limits:
+          memory: 64Mi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: unconfined-container
+  namespace: demo
+spec:
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: app
+      image: kind-registry:5000/app:v1.0.0
+      securityContext:
+        allowPrivilegeEscalation: false
+        seccompProfile:
+          type: Unconfined
         readOnlyRootFilesystem: true
         capabilities:
           drop: [ALL]
