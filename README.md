@@ -16,7 +16,8 @@ kubectl apply ─► Kyverno ImageValidatingPolicy ───────┘
                    └─ tag resolved and pinned to the verified digest
                  Kyverno ValidatingPolicy
                    ├─ images only from the lab registry or this repo's GHCR path
-                   └─ non-root, read-only rootfs, drop ALL, memory limit, no privilege, no host namespaces
+                   └─ non-root, read-only rootfs, drop ALL, seccomp, memory limit,
+                      no privilege, no host namespaces, hostPath or hostPort
 ```
 
 Everything runs locally on kind, and the e2e suite proves each rule with a
@@ -35,6 +36,9 @@ real image, not only a policy unit test.
 | Root container in an enforced namespace | `kubectl run` without securityContext | pod-hardening |
 | Image from Docker Hub or a look-alike GHCR path | offline fixture | allowed-registries |
 | Container without a memory limit | offline fixture | pod-hardening |
+| No seccomp profile, or `Unconfined` on one container | offline fixture | pod-hardening |
+| hostPath volume or hostPort | offline fixture | pod-hardening |
+| `kind-registry:5000/app` with no tag (the port is not a tag) | offline fixture | pod-hardening |
 
 Admitted pods are rewritten from `app:v1.2.3` to `app:v1.2.3@sha256:…`, so
 moving a tag later cannot change what runs.
@@ -46,7 +50,7 @@ kyverno CLI 1.20, Go.
 
 ```bash
 make up               # kind + local registry + Kyverno 1.20 + policies
-make test-policies    # 13 offline Kyverno CLI cases (no cluster)
+make test-policies    # 20 offline Kyverno CLI cases (no cluster)
 make e2e              # 12 admission cases against the live webhooks
 make down
 ```
@@ -68,6 +72,15 @@ cluster even when Docker Desktop changes the current context.
 The lab path is covered end to end by the e2e tests. The production policy
 is validated by the API server (`kubectl apply --dry-run=server`), but it is
 not exercised against a real GHCR release yet.
+
+## After admission
+
+Admission checks an image once. `.github/workflows/rescan.yml` rescans the
+three newest releases every Monday with a fresh vulnerability database and
+fails on a CRITICAL finding. Because the policy refuses scans older than 7
+days, a release has to be re-released (new scan, new attestation) at least
+weekly to keep scheduling; the rescan says early whether that release will
+come out clean.
 
 ## Transparency log
 

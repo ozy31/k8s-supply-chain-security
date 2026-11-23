@@ -21,6 +21,9 @@ What this setup stops, what it does not, and where the trust sits.
 | An image from an unmatched registry skips signature checks | Registry allowlist in enforced namespaces, prefix-matched so look-alike repositories fail | `test/policies/registries` |
 | One pod exhausts node memory | Memory limit required | `test/policies/hardening` |
 | A compromised image tries to escalate | Non-root, read-only rootfs, drop ALL, no privileged, no host namespaces | `test/policies`, `test/e2e/hardening.sh` |
+| A container uses unfiltered syscalls to attack the kernel | RuntimeDefault or Localhost seccomp profile required | `test/policies/hardening` |
+| A pod reads node files or binds node ports | hostPath volumes and hostPort refused | `test/policies/hardening` |
+| An untagged image slips past the tag rule because its registry has a port | Tag is read from the last path segment only | `untagged-with-port` fixture |
 | Signing key theft | Production is keyless; certificates live ~10 minutes and are bound to the workflow | design |
 | Signature backdating or silent key misuse | Every signature is in the public Rekor log and can be audited | design |
 
@@ -30,8 +33,9 @@ What this setup stops, what it does not, and where the trust sits.
   `release.yml` on a version tag, their image is signed like ours. Protect
   tags with rulesets and require review on the workflow file.
 - **Vulnerabilities discovered after admission.** Running pods are not
-  re-checked. A periodic rescan job or Kyverno background reports would
-  cover this.
+  re-checked by Kyverno. The weekly rescan workflow reports CRITICAL CVEs in
+  the newest releases, but it does not evict anything; acting on it is a
+  release, not an automatic rollback.
 - **Namespaces without the enforce label.** The allowlist and hardening
   baseline apply only where `supply-chain.lab/enforce=true` is set. A
   namespace that is created without it gets image verification for matched
