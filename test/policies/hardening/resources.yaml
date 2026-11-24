@@ -4,6 +4,7 @@ metadata:
   name: hardened
   namespace: demo
 spec:
+  automountServiceAccountToken: false
   securityContext:
     runAsNonRoot: true
     seccompProfile:
@@ -26,6 +27,7 @@ metadata:
   name: latest-tag
   namespace: demo
 spec:
+  automountServiceAccountToken: false
   securityContext:
     runAsNonRoot: true
   containers:
@@ -46,6 +48,7 @@ metadata:
   name: runs-as-root
   namespace: demo
 spec:
+  automountServiceAccountToken: false
   containers:
     - name: app
       image: kind-registry:5000/app:v1.0.0
@@ -64,6 +67,7 @@ metadata:
   name: privileged
   namespace: demo
 spec:
+  automountServiceAccountToken: false
   securityContext:
     runAsNonRoot: true
   containers:
@@ -85,6 +89,7 @@ metadata:
   name: keeps-capabilities
   namespace: demo
 spec:
+  automountServiceAccountToken: false
   securityContext:
     runAsNonRoot: true
   containers:
@@ -103,6 +108,7 @@ metadata:
   name: host-network
   namespace: demo
 spec:
+  automountServiceAccountToken: false
   hostNetwork: true
   securityContext:
     runAsNonRoot: true
@@ -124,6 +130,7 @@ metadata:
   name: root-init-container
   namespace: demo
 spec:
+  automountServiceAccountToken: false
   securityContext:
     runAsNonRoot: true
   initContainers:
@@ -156,6 +163,7 @@ metadata:
   name: no-memory-limit
   namespace: demo
 spec:
+  automountServiceAccountToken: false
   securityContext:
     runAsNonRoot: true
   containers:
@@ -173,6 +181,7 @@ metadata:
   name: untagged-with-port
   namespace: demo
 spec:
+  automountServiceAccountToken: false
   securityContext:
     runAsNonRoot: true
   containers:
@@ -193,6 +202,7 @@ metadata:
   name: pinned-by-digest
   namespace: demo
 spec:
+  automountServiceAccountToken: false
   securityContext:
     runAsNonRoot: true
     seccompProfile:
@@ -215,6 +225,7 @@ metadata:
   name: no-seccomp
   namespace: demo
 spec:
+  automountServiceAccountToken: false
   securityContext:
     runAsNonRoot: true
   containers:
@@ -235,6 +246,7 @@ metadata:
   name: unconfined-container
   namespace: demo
 spec:
+  automountServiceAccountToken: false
   securityContext:
     runAsNonRoot: true
     seccompProfile:
@@ -259,6 +271,7 @@ metadata:
   name: host-path
   namespace: demo
 spec:
+  automountServiceAccountToken: false
   securityContext:
     runAsNonRoot: true
     seccompProfile:
@@ -289,6 +302,7 @@ metadata:
   name: host-port
   namespace: demo
 spec:
+  automountServiceAccountToken: false
   securityContext:
     runAsNonRoot: true
     seccompProfile:
@@ -314,6 +328,7 @@ metadata:
   name: container-port-and-emptydir
   namespace: demo
 spec:
+  automountServiceAccountToken: false
   securityContext:
     runAsNonRoot: true
     seccompProfile:
@@ -344,6 +359,7 @@ metadata:
   name: unmasked-proc
   namespace: demo
 spec:
+  automountServiceAccountToken: false
   securityContext:
     runAsNonRoot: true
     seccompProfile:
@@ -367,6 +383,7 @@ metadata:
   name: unsafe-sysctl
   namespace: demo
 spec:
+  automountServiceAccountToken: false
   securityContext:
     runAsNonRoot: true
     seccompProfile:
@@ -392,6 +409,7 @@ metadata:
   name: safe-sysctl
   namespace: demo
 spec:
+  automountServiceAccountToken: false
   securityContext:
     runAsNonRoot: true
     seccompProfile:
@@ -399,6 +417,51 @@ spec:
     sysctls:
       - name: net.ipv4.tcp_syncookies
         value: "1"
+  containers:
+    - name: app
+      image: kind-registry:5000/app:v1.0.0
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: [ALL]
+      resources:
+        limits:
+          memory: 64Mi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: default-sa-token
+  namespace: demo
+spec:
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: app
+      image: kind-registry:5000/app:v1.0.0
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: [ALL]
+      resources:
+        limits:
+          memory: 64Mi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: own-service-account
+  namespace: demo
+spec:
+  serviceAccountName: app
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   containers:
     - name: app
       image: kind-registry:5000/app:v1.0.0

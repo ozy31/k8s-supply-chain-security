@@ -10,7 +10,7 @@ resources:
 variables: values.yaml
 results:
   - policy: pod-hardening
-    resources: [hardened, pinned-by-digest, container-port-and-emptydir, safe-sysctl]
+    resources: [hardened, pinned-by-digest, container-port-and-emptydir, safe-sysctl, own-service-account]
     kind: Pod
     result: pass
   - policy: pod-hardening
@@ -29,5 +29,6 @@ results:
       - host-port
       - unmasked-proc
       - unsafe-sysctl
+      - default-sa-token
     kind: Pod
     result: fail

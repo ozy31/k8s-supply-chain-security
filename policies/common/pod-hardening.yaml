@@ -77,3 +77,10 @@ spec:
           'net.ipv4.tcp_keepalive_time', 'net.ipv4.tcp_fin_timeout', 'net.ipv4.tcp_keepalive_intvl',
           'net.ipv4.tcp_keepalive_probes'])
       message: only safe sysctls are allowed
+    # Most workloads never call the API server. A pod on the default service
+    # account gets no token; one that needs the API gets its own account,
+    # which makes its RBAC visible and reviewable.
+    - expression: >-
+        object.spec.?serviceAccountName.orValue('default') != 'default' ||
+        object.spec.?automountServiceAccountToken.orValue(true) == false
+      message: pods on the default service account must set automountServiceAccountToken=false
