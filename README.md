@@ -17,7 +17,8 @@ kubectl apply ─► Kyverno ImageValidatingPolicy ───────┘
                  Kyverno ValidatingPolicy
                    ├─ images only from the lab registry or this repo's GHCR path
                    └─ non-root, read-only rootfs, drop ALL, seccomp, memory limit,
-                      no privilege, no host namespaces, hostPath or hostPort
+                      no privilege, no host namespaces, hostPath or hostPort,
+                      no unmasked /proc or unsafe sysctls, no default SA token
 ```
 
 Everything runs locally on kind, and the e2e suite proves each rule with a
@@ -38,6 +39,8 @@ real image, not only a policy unit test.
 | Container without a memory limit | offline fixture | pod-hardening |
 | No seccomp profile, or `Unconfined` on one container | offline fixture | pod-hardening |
 | hostPath volume or hostPort | offline fixture | pod-hardening |
+| `procMount: Unmasked` or an unsafe sysctl such as `kernel.msgmax` | offline fixture | pod-hardening |
+| Default service account with a mounted token | offline fixture | pod-hardening |
 | `kind-registry:5000/app` with no tag (the port is not a tag) | offline fixture | pod-hardening |
 
 Admitted pods are rewritten from `app:v1.2.3` to `app:v1.2.3@sha256:…`, so
@@ -50,7 +53,7 @@ kyverno CLI 1.20, Go.
 
 ```bash
 make up               # kind + local registry + Kyverno 1.20 + policies
-make test-policies    # 20 offline Kyverno CLI cases (no cluster)
+make test-policies    # coverage check + 25 offline Kyverno CLI cases (no cluster)
 make e2e              # 12 admission cases against the live webhooks
 make down
 ```
@@ -102,7 +105,7 @@ policies/github/          keyless image policy for GHCR releases
 policies/common/          registry allowlist and pod hardening ValidatingPolicies
 test/policies/            offline `kyverno test` cases, one directory per policy
 test/e2e/                 live admission tests
-docs/                     threat model, ADRs
+docs/                     threat model, ADRs (incl. why the baseline overlaps PSA)
 ```
 
 ## License
