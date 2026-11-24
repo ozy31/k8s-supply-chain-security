@@ -12,6 +12,7 @@ policies: ## render and apply all policies
 	hack/apply-policies.sh
 
 test-policies: ## offline policy tests, no cluster needed
+	hack/check-policy-tests.sh
 	kyverno test test/policies
 
 e2e: ## admission tests against the live cluster
