@@ -337,3 +337,76 @@ spec:
   volumes:
     - name: tmp
       emptyDir: {}
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: unmasked-proc
+  namespace: demo
+spec:
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: app
+      image: kind-registry:5000/app:v1.0.0
+      securityContext:
+        allowPrivilegeEscalation: false
+        procMount: Unmasked
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: [ALL]
+      resources:
+        limits:
+          memory: 64Mi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: unsafe-sysctl
+  namespace: demo
+spec:
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+    sysctls:
+      - name: kernel.msgmax
+        value: "1"
+  containers:
+    - name: app
+      image: kind-registry:5000/app:v1.0.0
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: [ALL]
+      resources:
+        limits:
+          memory: 64Mi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: safe-sysctl
+  namespace: demo
+spec:
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+    sysctls:
+      - name: net.ipv4.tcp_syncookies
+        value: "1"
+  containers:
+    - name: app
+      image: kind-registry:5000/app:v1.0.0
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: [ALL]
+      resources:
+        limits:
+          memory: 64Mi

@@ -65,3 +65,15 @@ spec:
     - expression: >-
         variables.containers.all(c, c.?ports.orValue([]).all(p, p.?hostPort.orValue(0) == 0))
       message: hostPort is not allowed, expose the pod through a Service
+    - expression: >-
+        variables.containers.all(c, c.?securityContext.?procMount.orValue('Default') == 'Default')
+      message: procMount must be Default, an unmasked /proc exposes host information
+    # The namespaced sysctls Kubernetes treats as safe; anything else needs a
+    # kubelet allowlist and can affect other pods on the node.
+    - expression: >-
+        object.spec.?securityContext.?sysctls.orValue([]).all(s, s.name in [
+          'kernel.shm_rmid_forced', 'net.ipv4.ip_local_port_range', 'net.ipv4.ip_unprivileged_port_start',
+          'net.ipv4.tcp_syncookies', 'net.ipv4.ping_group_range', 'net.ipv4.ip_local_reserved_ports',
+          'net.ipv4.tcp_keepalive_time', 'net.ipv4.tcp_fin_timeout', 'net.ipv4.tcp_keepalive_intvl',
+          'net.ipv4.tcp_keepalive_probes'])
+      message: only safe sysctls are allowed
